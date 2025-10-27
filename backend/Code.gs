@@ -29,25 +29,26 @@ function doGet(e) {
   const action = e.parameter.action;
 
   try {
+    let result;
     switch(action) {
       case 'getProperties':
-        return jsonResponse(getProperties());
-
+        result = getProperties();
+        break;
       case 'getCategories':
-        return jsonResponse(getCategories());
-
+        result = getCategories();
+        break;
       case 'getCardholders':
-        return jsonResponse(getCardholders());
-
+        result = getCardholders();
+        break;
       case 'getTransactions':
-        return jsonResponse(getTransactions(e.parameter.startDate, e.parameter.endDate));
-
+        result = getTransactions(e.parameter.startDate, e.parameter.endDate);
+        break;
       default:
-        return jsonResponse({error: 'Invalid action'}, 400);
+        result = {error: 'Invalid action'};
     }
+    return jsonResponseWithCors(result);
   } catch(error) {
-    Logger.log('Error in doGet: ' + error.toString());
-    return jsonResponse({error: error.toString()}, 500);
+    return jsonResponseWithCors({error: error.toString()}, 500);
   }
 }
 
@@ -60,37 +61,40 @@ function doPost(e) {
   const action = e.parameter.action;
 
   try {
-    const data = JSON.parse(e.postData.contents);
+    let data = JSON.parse(e.postData.contents);
+    let result;
 
     switch(action) {
       case 'saveTransactions':
-        return jsonResponse(saveTransactions(data));
-
+        result = saveTransactions(data);
+        break;
       case 'addProperty':
-        return jsonResponse(addProperty(data.name));
-
+        result = addProperty(data.name);
+        break;
       case 'addCategory':
-        return jsonResponse(addCategory(data.name));
-
+        result = addCategory(data.name);
+        break;
       default:
-        return jsonResponse({error: 'Invalid action'}, 400);
+        result = {error: 'Invalid action'};
     }
+    return jsonResponseWithCors(result);
   } catch(error) {
-    Logger.log('Error in doPost: ' + error.toString());
-    return jsonResponse({error: error.toString()}, 500);
+    return jsonResponseWithCors({error: error.toString()}, 500);
   }
 }
 
 /**
- * Create JSON response
+ * Create JSON response with CORS headers
  * @param {Object} data - Data to return
  * @param {number} statusCode - HTTP status code (default: 200)
  * @returns {ContentService.TextOutput} JSON response
  */
-function jsonResponse(data, statusCode = 200) {
-  return ContentService
+function jsonResponseWithCors(data, statusCode = 200) {
+  const output = ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+
+  return output;
 }
 
 // ============================================================================
