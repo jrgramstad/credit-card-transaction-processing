@@ -3,7 +3,7 @@
 const CONFIG = {
   // Google Apps Script Web App URL
   // IMPORTANT: Replace this with your actual deployed Web App URL from Google Apps Script
-  API_URL: 'YOUR_APPS_SCRIPT_URL_HERE',
+  API_URL: 'https://script.google.com/macros/s/AKfycbx5p3URYCHUTjDHxT-Vs7DWLugPqLmHtWbUP5i1dwJlJ6MGZnn2bXrCUnLtv23DgRvwVA/exec',
 
   // API Endpoints (appended to API_URL as query parameters)
   ENDPOINTS: {
