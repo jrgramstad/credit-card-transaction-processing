@@ -1,19 +1,10 @@
 // Configuration file for Credit Card Transaction Processing System
 
 const CONFIG = {
-  // Google Apps Script Web App URL
-  // IMPORTANT: Replace this with your actual deployed Web App URL from Google Apps Script
-  API_URL: 'https://script.google.com/macros/s/AKfycbx5p3URYCHUTjDHxT-Vs7DWLugPqLmHtWbUP5i1dwJlJ6MGZnn2bXrCUnLtv23DgRvwVA/exec',
-
-  // API Endpoints (appended to API_URL as query parameters)
-  ENDPOINTS: {
-    GET_PROPERTIES: '?action=getProperties',
-    GET_CATEGORIES: '?action=getCategories',
-    GET_CARDHOLDERS: '?action=getCardholders',
-    GET_TRANSACTIONS: '?action=getTransactions',
-    SAVE_TRANSACTIONS: '?action=saveTransactions',
-    ADD_PROPERTY: '?action=addProperty',
-    ADD_CATEGORY: '?action=addCategory'
+  // Supabase Configuration
+  supabase: {
+    url: 'https://gcuunlxfgtnppnqkikaz.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjdXVubHhmZ3RucHBucWtpa2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1NzY3MTgsImV4cCI6MjA3NzE1MjcxOH0.8uKySCjd_f8sqOtYAyD2_MyvQIC_2IsYkHE1NoqtQT4'
   },
 
   // LocalStorage keys for saving progress
