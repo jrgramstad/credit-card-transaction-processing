@@ -6,7 +6,7 @@
 // ============================================================================
 
 // IMPORTANT: Replace this with your actual Google Sheet ID
-const SHEET_ID = 'YOUR_SHEET_ID_HERE';
+const SHEET_ID = '1p-lPdwil2XkJSBxDyZHbqVUe0laX0iyFFzM0pJ6WTVg';
 
 // Sheet names
 const SHEETS = {
