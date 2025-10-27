@@ -15,10 +15,9 @@ This system helps process 3-5 daily credit card transactions by:
 ## Tech Stack
 
 - **Frontend**: Vanilla JavaScript, HTML, CSS
-- **Backend**: Google Apps Script (API layer)
-- **Database**: Google Sheets
+- **Database**: Supabase (PostgreSQL)
 - **Deployment**: Netlify
-- **Libraries**: SheetJS (Excel), jsPDF (PDF generation)
+- **Libraries**: SheetJS (Excel), jsPDF (PDF generation), Supabase JS Client
 
 ## Project Structure
 
@@ -31,53 +30,52 @@ credit-card-transactions/
 │   ├── app.js               # Main application logic
 │   ├── csvParser.js         # CSV parsing and deduplication
 │   ├── reportGenerator.js   # Excel and PDF generation
-│   └── config.js            # API endpoint configuration
-├── backend/                 # Google Apps Script code
-│   └── Code.gs             # API endpoints for Google Sheets
+│   └── config.js            # Supabase configuration
+├── database/                # Database schema
+│   └── schema.sql          # Supabase database schema and seed data
 └── docs/                   # Documentation
     └── BUILD_SPEC.md       # Detailed build specifications
 ```
 
 ## Setup Instructions
 
-### 1. Google Sheet Setup
+### 1. Supabase Database Setup
 
-Create a Google Sheet named "CC_Transaction_Database" with 4 sheets:
+1. **Create Supabase Project**
+   - Go to [supabase.com](https://supabase.com)
+   - Create a new project (or use existing)
 
-**Transactions_Master:**
-- Columns: Report_Date, Posted_Date, Transaction_Date, Source, Description, Amount, Property, Category, Cardholder_Name, Card_Last_4, Order_Number, Store_Location, Notes, Created_Timestamp
+2. **Run Database Schema**
+   - Go to your Supabase dashboard
+   - Click "SQL Editor" in left sidebar
+   - Click "New query"
+   - Copy the entire contents of `database/schema.sql`
+   - Paste into SQL Editor and click "Run" (or press Cmd/Ctrl + Enter)
+   - Verify tables created: Click "Table Editor" - you should see `properties`, `categories`, `cardholders`, `transactions` tables
 
-**Properties:**
-- Columns: Property_Name, Active, Sort_Order
-- Prepopulate with properties (Chatham Forney, Emerson Forney, Grove Richardson, Nelson Denison, Angelina, Pemrose, Office, Maintenance, Other)
+3. **Get Supabase Credentials**
+   - In Supabase dashboard, go to Settings > API
+   - Copy your **Project URL** (e.g., `https://xxxxx.supabase.co`)
+   - Copy your **anon/public key** (the `anon` key under "Project API keys")
 
-**Categories:**
-- Columns: Category_Name, Active, Sort_Order
-- Prepopulate with categories (Gas/Automotive, Job Supplies, Storage, Utilities, Fraudulent charge, Office Supplies, Cleaning, Pest Control, Other)
-
-**Cardholders:**
-- Columns: Full_Name, Card_Last_4, Role, Active
-- Prepopulate with cardholder information
-
-### 2. Google Apps Script Deployment
-
-1. Go to script.google.com
-2. Create new project: "CC_Transaction_API"
-3. Copy code from `backend/Code.gs`
-4. Replace `SHEET_ID` with your Google Sheet ID
-5. Deploy as Web App (Execute as: Me, Access: Anyone)
-6. Copy the Web App URL
-
-### 3. Frontend Configuration
+### 2. Frontend Configuration
 
 1. Edit `frontend/config.js`
-2. Replace `YOUR_APPS_SCRIPT_URL` with your Web App URL from step 2
+2. Update the Supabase configuration with your credentials:
+   ```javascript
+   supabase: {
+     url: 'YOUR_SUPABASE_PROJECT_URL',
+     anonKey: 'YOUR_SUPABASE_ANON_KEY'
+   }
+   ```
 
-### 4. Deployment to Netlify
+### 3. Deployment to Netlify
 
 1. Connect this GitHub repository to Netlify
 2. Set build directory to `frontend/`
 3. Deploy
+
+**Note:** No CORS configuration needed! Supabase handles cross-origin requests automatically.
 
 ## Usage
 
