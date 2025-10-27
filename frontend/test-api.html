@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test - CC Transaction System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .success {
+      border-left: 4px solid #28a745;
+    }
+    .error {
+      border-left: 4px solid #dc3545;
+    }
+    h1 {
+      color: #007bff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 API Connection Test</h1>
+  <p>Click the buttons below to test your Google Apps Script API connection.</p>
+
+  <div class="test-section">
+    <h2>Test 1: Get Properties</h2>
+    <button onclick="testProperties()">Test Properties API</button>
+    <div id="propertiesResult" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Get Categories</h2>
+    <button onclick="testCategories()">Test Categories API</button>
+    <div id="categoriesResult" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Get Cardholders</h2>
+    <button onclick="testCardholders()">Test Cardholders API</button>
+    <div id="cardholdersResult" class="result" style="display:none;"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test All</h2>
+    <button onclick="testAll()">Run All Tests</button>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const API_URL = CONFIG.API_URL;
+
+    async function testProperties() {
+      const resultDiv = document.getElementById('propertiesResult');
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = 'Testing...';
+
+      try {
+        const response = await fetch(API_URL + '?action=getProperties');
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = '✅ SUCCESS!\n\nProperties loaded:\n' + JSON.stringify(data, null, 2);
+        } else {
+          resultDiv.className = 'result error';
+          resultDiv.textContent = '❌ FAILED!\n\nNo properties found. Check your Google Sheet "Properties" tab.';
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ ERROR!\n\n' + error.toString();
+      }
+    }
+
+    async function testCategories() {
+      const resultDiv = document.getElementById('categoriesResult');
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = 'Testing...';
+
+      try {
+        const response = await fetch(API_URL + '?action=getCategories');
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = '✅ SUCCESS!\n\nCategories loaded:\n' + JSON.stringify(data, null, 2);
+        } else {
+          resultDiv.className = 'result error';
+          resultDiv.textContent = '❌ FAILED!\n\nNo categories found. Check your Google Sheet "Categories" tab.';
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ ERROR!\n\n' + error.toString();
+      }
+    }
+
+    async function testCardholders() {
+      const resultDiv = document.getElementById('cardholdersResult');
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = 'Testing...';
+
+      try {
+        const response = await fetch(API_URL + '?action=getCardholders');
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          resultDiv.className = 'result success';
+          resultDiv.textContent = '✅ SUCCESS!\n\nCardholders loaded:\n' + JSON.stringify(data, null, 2);
+        } else {
+          resultDiv.className = 'result error';
+          resultDiv.textContent = '❌ FAILED!\n\nNo cardholders found. Check your Google Sheet "Cardholders" tab.';
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.textContent = '❌ ERROR!\n\n' + error.toString();
+      }
+    }
+
+    async function testAll() {
+      await testProperties();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testCategories();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await testCardholders();
+    }
+
+    // Auto-test on load
+    console.log('API URL:', API_URL);
+    console.log('Ready to test! Click buttons above or check console for details.');
+  </script>
+</body>
+</html>
