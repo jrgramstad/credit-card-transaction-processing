@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Credit Card Transaction Processing System</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- External Libraries -->
+  <!-- SheetJS for Excel generation -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Header -->
+    <header class="header">
+      <h1>Credit Card Transaction Processing</h1>
+      <p>Upload daily credit card statements, categorize transactions, and generate reports</p>
+    </header>
+
+    <!-- File Upload Section -->
+    <section class="section upload-section">
+      <h2 class="section-title">Step 1: Upload CSV Files</h2>
+
+      <div class="file-upload-group">
+        <div class="file-upload-item">
+          <label for="capitalOneFile">Capital One CSV</label>
+          <input type="file" id="capitalOneFile" class="file-input" accept=".csv">
+          <small>Upload Capital One transaction export</small>
+        </div>
+
+        <div class="file-upload-item">
+          <label for="homeDepotFile">Home Depot CSV</label>
+          <input type="file" id="homeDepotFile" class="file-input" accept=".csv">
+          <small>Upload Home Depot purchase export</small>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button id="processBtn" class="btn btn-primary" disabled>Process Transactions</button>
+        <button id="clearBtn" class="btn btn-secondary">Clear All</button>
+      </div>
+    </section>
+
+    <!-- Categorization Section -->
+    <section id="categorizationSection" class="section" style="display: none;">
+      <h2 class="section-title">
+        Step 2: Review & Categorize Transactions
+        <span class="transaction-count" id="transactionCount">0</span>
+      </h2>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #d4edda;"></div>
+          <span>Auto-Assigned (Home Depot)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #fff3cd;"></div>
+          <span>Needs Assignment (Capital One)</span>
+        </div>
+      </div>
+
+      <!-- Transaction Table -->
+      <div class="table-container">
+        <table class="transaction-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Property</th>
+              <th>Category</th>
+              <th>Cardholder</th>
+              <th>Card Last 4</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody id="transactionTableBody">
+            <!-- Transactions will be populated here by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Save Progress Button -->
+      <div class="btn-group">
+        <button id="saveProgressBtn" class="btn btn-success">Save Progress</button>
+        <button id="generateReportsBtn" class="btn btn-primary">Generate Reports</button>
+      </div>
+    </section>
+
+    <!-- Reports Section -->
+    <section id="reportsSection" class="section reports-section" style="display: none;">
+      <h2 class="section-title">Step 3: Download Reports</h2>
+
+      <p class="mb-20 text-center">
+        Transactions have been saved to Google Sheets. Click below to download reports.
+      </p>
+
+      <div class="report-options">
+        <div class="report-card">
+          <h3>Excel Report</h3>
+          <p>Detailed transaction list in Excel format</p>
+          <button id="downloadExcelBtn" class="btn btn-success" disabled>
+            Download Excel
+          </button>
+        </div>
+
+        <div class="report-card">
+          <h3>PDF Summary</h3>
+          <p>Executive summary with totals and breakdowns</p>
+          <button id="downloadPDFBtn" class="btn btn-danger" disabled>
+            Download PDF
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div id="loadingMessage" class="loading-message">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Application Scripts -->
+  <script src="config.js"></script>
+  <script src="csvParser.js"></script>
+  <script src="reportGenerator.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
