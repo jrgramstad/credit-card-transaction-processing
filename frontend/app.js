@@ -1,5 +1,11 @@
 // Main Application Logic for Credit Card Transaction Processing System
 
+// Initialize Supabase client
+const supabaseClient = supabase.createClient(
+  CONFIG.supabase.url,
+  CONFIG.supabase.anonKey
+);
+
 const App = {
   // Application state
   state: {
@@ -35,65 +41,59 @@ const App = {
   },
 
   /**
-   * Load master data from Google Apps Script API
+   * Load master data from Supabase
    */
   async loadMasterData() {
     try {
-      this.showLoading('Loading master data...');
+      this.showLoading('Loading master data from Supabase...');
 
-      // Load properties, categories, and cardholders in parallel
-      const [properties, categories, cardholders] = await Promise.all([
-        this.fetchProperties(),
-        this.fetchCategories(),
-        this.fetchCardholders()
-      ]);
+      // Load properties
+      const { data: propertiesData, error: propError } = await supabaseClient
+        .from('properties')
+        .select('name')
+        .eq('active', true)
+        .order('sort_order');
 
-      this.state.properties = properties;
-      this.state.categories = categories;
-      this.state.cardholders = cardholders;
+      if (propError) throw propError;
+      this.state.properties = propertiesData.map(p => p.name);
 
-      console.log('Master data loaded:', {
-        properties: properties.length,
-        categories: categories.length,
-        cardholders: cardholders.length
+      // Load categories
+      const { data: categoriesData, error: catError } = await supabaseClient
+        .from('categories')
+        .select('name')
+        .eq('active', true)
+        .order('sort_order');
+
+      if (catError) throw catError;
+      this.state.categories = categoriesData.map(c => c.name);
+
+      // Load cardholders
+      const { data: cardholdersData, error: cardError } = await supabaseClient
+        .from('cardholders')
+        .select('*')
+        .eq('active', true);
+
+      if (cardError) throw cardError;
+
+      // Transform cardholders to match expected format
+      this.state.cardholders = cardholdersData.map(ch => ({
+        name: ch.full_name,
+        cardLast4: ch.card_last_4,
+        role: ch.role
+      }));
+
+      console.log('Master data loaded from Supabase:', {
+        properties: this.state.properties.length,
+        categories: this.state.categories.length,
+        cardholders: this.state.cardholders.length
       });
 
       this.hideLoading();
     } catch (error) {
       console.error('Error loading master data:', error);
-      this.showError('Failed to load master data. Please check your API configuration.');
+      this.showError('Failed to load master data from Supabase. Please check your database configuration.');
       this.hideLoading();
     }
-  },
-
-  /**
-   * Fetch properties from API
-   */
-  async fetchProperties() {
-    const url = CONFIG.API_URL + CONFIG.ENDPOINTS.GET_PROPERTIES;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch properties');
-    return await response.json();
-  },
-
-  /**
-   * Fetch categories from API
-   */
-  async fetchCategories() {
-    const url = CONFIG.API_URL + CONFIG.ENDPOINTS.GET_CATEGORIES;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch categories');
-    return await response.json();
-  },
-
-  /**
-   * Fetch cardholders from API
-   */
-  async fetchCardholders() {
-    const url = CONFIG.API_URL + CONFIG.ENDPOINTS.GET_CARDHOLDERS;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch cardholders');
-    return await response.json();
   },
 
   /**
@@ -491,30 +491,39 @@ const App = {
   },
 
   /**
-   * Save transactions to Google Sheets
+   * Save transactions to Supabase
    */
   async saveTransactionsToSheet() {
-    const url = CONFIG.API_URL + CONFIG.ENDPOINTS.SAVE_TRANSACTIONS;
-
     // Filter out duplicates
-    const transactionsToSave = this.state.transactions.filter(txn => !txn.isDuplicate);
+    const transactionsToSave = this.state.transactions
+      .filter(txn => !txn.isDuplicate)
+      .map(t => ({
+        report_date: new Date().toISOString().split('T')[0],
+        posted_date: t.postedDate,
+        transaction_date: t.transactionDate || null,
+        source: t.source,
+        description: t.description,
+        amount: parseFloat(t.amount),
+        property: t.property,
+        category: t.category,
+        cardholder_name: t.cardholderName,
+        card_last_4: t.cardLast4,
+        order_number: t.orderNumber || null,
+        store_location: t.storeLocation || null,
+        notes: t.notes || null
+      }));
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(transactionsToSave)
-    });
+    const { data, error } = await supabaseClient
+      .from('transactions')
+      .insert(transactionsToSave);
 
-    if (!response.ok) {
-      throw new Error('Failed to save transactions to Google Sheets');
+    if (error) {
+      console.error('Supabase error:', error);
+      throw new Error('Failed to save transactions to Supabase: ' + error.message);
     }
 
-    const result = await response.json();
-    console.log('Transactions saved:', result);
-
-    return result;
+    console.log('Transactions saved to Supabase successfully');
+    return { success: true };
   },
 
   /**
