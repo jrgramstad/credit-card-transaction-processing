@@ -90,8 +90,17 @@ const ReportGenerator = {
     );
 
     // Generate PDF content
-    this.addPDFHeader(doc);
+    this.addPDFHeader(doc, transactions);
     this.addPDFSummary(doc, transactions);
+
+    // Add new page for store runs summary (if there are any runs)
+    const storeRuns = this.calculateStoreRuns(transactions);
+    const hasRuns = Object.keys(storeRuns.homeDepot).length > 0 || Object.keys(storeRuns.lowes).length > 0;
+    if (hasRuns) {
+      doc.addPage();
+      this.addPDFStoreRunsSummary(doc, transactions);
+    }
+
     this.addPDFTransactionTable(doc, transactions);
     this.addPDFFooter(doc);
 
@@ -103,8 +112,9 @@ const ReportGenerator = {
   /**
    * Add header to PDF
    * @param {jsPDF} doc - jsPDF document instance
+   * @param {Array} transactions - Array of transaction objects
    */
-  addPDFHeader(doc) {
+  addPDFHeader(doc, transactions) {
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // Title
@@ -112,7 +122,25 @@ const ReportGenerator = {
     doc.setFont(undefined, 'bold');
     doc.text(CONFIG.REPORTS.PDF.TITLE, pageWidth / 2, 40, { align: 'center' });
 
-    // Date range
+    // Calculate date range from transactions
+    const validTransactions = transactions.filter(txn => !txn.isDuplicate && txn.postedDate);
+    let dateRangeText = '';
+
+    if (validTransactions.length > 0) {
+      const postedDates = validTransactions.map(txn => new Date(txn.postedDate));
+      const startDate = new Date(Math.min(...postedDates));
+      const endDate = new Date(Math.max(...postedDates));
+
+      const formatDate = (date) => date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+
+      dateRangeText = `Transactions Posted: ${formatDate(startDate)} - ${formatDate(endDate)}`;
+    }
+
+    // Report generated date
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
     const today = new Date().toLocaleDateString('en-US', {
@@ -122,9 +150,15 @@ const ReportGenerator = {
     });
     doc.text(`Report Generated: ${today}`, pageWidth / 2, 60, { align: 'center' });
 
+    // Transaction date range
+    if (dateRangeText) {
+      doc.text(dateRangeText, pageWidth / 2, 75, { align: 'center' });
+    }
+
     // Line separator
     doc.setLineWidth(1);
-    doc.line(40, 70, pageWidth - 40, 70);
+    const lineY = dateRangeText ? 85 : 70;
+    doc.line(40, lineY, pageWidth - 40, lineY);
   },
 
   /**
@@ -134,7 +168,7 @@ const ReportGenerator = {
    */
   addPDFSummary(doc, transactions) {
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 90;
+    let yPosition = 105; // Adjusted for new header with date range
 
     // Calculate summary statistics
     const validTransactions = transactions.filter(txn => !txn.isDuplicate);
@@ -144,6 +178,7 @@ const ReportGenerator = {
     // Summary by category
     const categoryTotals = this.calculateCategoryTotals(validTransactions);
     const propertyTotals = this.calculatePropertyTotals(validTransactions);
+    const cardholderTotals = this.calculateCardholderTotals(validTransactions);
 
     // Summary title
     doc.setFontSize(14);
@@ -159,24 +194,9 @@ const ReportGenerator = {
     doc.text(`Total Amount: ${this.formatCurrency(totalAmount)}`, 40, yPosition);
     yPosition += 25;
 
-    // Category breakdown
-    doc.setFont(undefined, 'bold');
-    doc.text('By Category:', 40, yPosition);
-    yPosition += 15;
-    doc.setFont(undefined, 'normal');
-
-    Object.entries(categoryTotals)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([category, amount]) => {
-        doc.text(`  ${category}: ${this.formatCurrency(amount)}`, 50, yPosition);
-        yPosition += 12;
-      });
-
-    yPosition += 10;
-
     // Property breakdown
     doc.setFont(undefined, 'bold');
-    doc.text('By Property:', 40, yPosition);
+    doc.text('Spending by Property:', 40, yPosition);
     yPosition += 15;
     doc.setFont(undefined, 'normal');
 
@@ -186,10 +206,90 @@ const ReportGenerator = {
         doc.text(`  ${property}: ${this.formatCurrency(amount)}`, 50, yPosition);
         yPosition += 12;
       });
+
+    yPosition += 10;
+
+    // Cardholder breakdown
+    doc.setFont(undefined, 'bold');
+    doc.text('Spending by Cardholder:', 40, yPosition);
+    yPosition += 15;
+    doc.setFont(undefined, 'normal');
+
+    Object.entries(cardholderTotals)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([cardholder, amount]) => {
+        doc.text(`  ${cardholder}: ${this.formatCurrency(amount)}`, 50, yPosition);
+        yPosition += 12;
+      });
   },
 
   /**
-   * Add transaction table to PDF
+   * Add store runs summary to PDF
+   * @param {jsPDF} doc - jsPDF document instance
+   * @param {Array} transactions - Array of transaction objects
+   * @returns {number} Final y position after adding section
+   */
+  addPDFStoreRunsSummary(doc, transactions) {
+    const storeRuns = this.calculateStoreRuns(transactions);
+    let yPosition = 40;
+
+    // Check if there are any runs to display
+    const hasHomeDepotRuns = Object.keys(storeRuns.homeDepot).length > 0;
+    const hasLowesRuns = Object.keys(storeRuns.lowes).length > 0;
+
+    if (!hasHomeDepotRuns && !hasLowesRuns) {
+      return yPosition; // No runs, return without adding section
+    }
+
+    // Section title
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Store Runs Summary', 40, yPosition);
+    yPosition += 20;
+
+    doc.setFontSize(11);
+
+    // Home Depot Runs
+    if (hasHomeDepotRuns) {
+      doc.setFont(undefined, 'bold');
+      doc.text('Home Depot Runs:', 40, yPosition);
+      yPosition += 15;
+      doc.setFont(undefined, 'normal');
+
+      Object.entries(storeRuns.homeDepot)
+        .sort((a, b) => b[1].count - a[1].count)
+        .forEach(([cardholder, data]) => {
+          const text = `  ${cardholder}: ${data.count} runs, ${this.formatCurrency(data.total)} total`;
+          doc.text(text, 50, yPosition);
+          yPosition += 12;
+        });
+
+      yPosition += 5;
+    }
+
+    // Lowes Runs
+    if (hasLowesRuns) {
+      doc.setFont(undefined, 'bold');
+      doc.text('Lowes Runs:', 40, yPosition);
+      yPosition += 15;
+      doc.setFont(undefined, 'normal');
+
+      Object.entries(storeRuns.lowes)
+        .sort((a, b) => b[1].count - a[1].count)
+        .forEach(([cardholder, data]) => {
+          const text = `  ${cardholder}: ${data.count} runs, ${this.formatCurrency(data.total)} total`;
+          doc.text(text, 50, yPosition);
+          yPosition += 12;
+        });
+
+      yPosition += 5;
+    }
+
+    return yPosition;
+  },
+
+  /**
+   * Add transaction tables grouped by cardholder to PDF
    * @param {jsPDF} doc - jsPDF document instance
    * @param {Array} transactions - Array of transaction objects
    */
@@ -198,56 +298,115 @@ const ReportGenerator = {
     doc.addPage();
     let yPosition = 40;
 
-    // Table title
+    // Main title
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('Transaction Details', 40, yPosition);
-    yPosition += 20;
+    doc.text('Transactions by Cardholder', 40, yPosition);
+    yPosition += 25;
 
-    // Table header
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'bold');
-    const columns = {
-      date: { x: 40, width: 60, label: 'Date' },
-      description: { x: 100, width: 150, label: 'Description' },
-      amount: { x: 250, width: 60, label: 'Amount' },
-      category: { x: 310, width: 80, label: 'Category' },
-      property: { x: 390, width: 80, label: 'Property' }
-    };
-
-    Object.values(columns).forEach(col => {
-      doc.text(col.label, col.x, yPosition);
-    });
-
-    yPosition += 5;
-    doc.setLineWidth(0.5);
-    doc.line(40, yPosition, 570, yPosition);
-    yPosition += 10;
-
-    // Table rows
-    doc.setFont(undefined, 'normal');
+    // Group transactions by cardholder
     const validTransactions = transactions.filter(txn => !txn.isDuplicate);
+    const cardholderTotals = this.calculateCardholderTotals(validTransactions);
+    const transactionsByCardholder = {};
 
     validTransactions.forEach(txn => {
-      // Check if we need a new page
-      if (yPosition > 700) {
+      const cardholder = txn.cardholderName || 'Unknown';
+      if (!transactionsByCardholder[cardholder]) {
+        transactionsByCardholder[cardholder] = [];
+      }
+      transactionsByCardholder[cardholder].push(txn);
+    });
+
+    // Sort cardholders by spending (highest first)
+    const sortedCardholders = Object.keys(cardholderTotals).sort((a, b) => {
+      return cardholderTotals[b] - cardholderTotals[a];
+    });
+
+    // Table columns configuration
+    const columns = {
+      date: { x: 40, width: 60, label: 'Date' },
+      description: { x: 100, width: 180, label: 'Description' },
+      property: { x: 280, width: 100, label: 'Property' },
+      category: { x: 380, width: 100, label: 'Category' },
+      amount: { x: 480, width: 60, label: 'Amount' }
+    };
+
+    // Render table for each cardholder
+    sortedCardholders.forEach((cardholder, cardholderIndex) => {
+      const cardholderTransactions = transactionsByCardholder[cardholder];
+      const cardholderTotal = cardholderTotals[cardholder];
+
+      // Check if we need a new page for this cardholder's section
+      if (yPosition > 650) {
         doc.addPage();
         yPosition = 40;
       }
 
-      // Truncate description if too long
-      let description = txn.description;
-      if (description.length > 30) {
-        description = description.substring(0, 27) + '...';
-      }
+      // Cardholder section header
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`${cardholder} - Total: ${this.formatCurrency(cardholderTotal)}`, 40, yPosition);
+      yPosition += 15;
 
-      doc.text(txn.transactionDate, columns.date.x, yPosition);
-      doc.text(description, columns.description.x, yPosition);
-      doc.text(this.formatCurrency(txn.amount), columns.amount.x, yPosition);
-      doc.text(txn.category, columns.category.x, yPosition);
-      doc.text(txn.property, columns.property.x, yPosition);
+      // Table header
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      Object.values(columns).forEach(col => {
+        doc.text(col.label, col.x, yPosition);
+      });
 
-      yPosition += 12;
+      yPosition += 5;
+      doc.setLineWidth(0.5);
+      doc.line(40, yPosition, 545, yPosition);
+      yPosition += 10;
+
+      // Table rows for this cardholder
+      doc.setFont(undefined, 'normal');
+      cardholderTransactions.forEach(txn => {
+        // Check if we need a new page
+        if (yPosition > 720) {
+          doc.addPage();
+          yPosition = 40;
+
+          // Repeat header on new page
+          doc.setFontSize(9);
+          doc.setFont(undefined, 'bold');
+          Object.values(columns).forEach(col => {
+            doc.text(col.label, col.x, yPosition);
+          });
+          yPosition += 5;
+          doc.line(40, yPosition, 545, yPosition);
+          yPosition += 10;
+          doc.setFont(undefined, 'normal');
+        }
+
+        // Truncate long text
+        let description = txn.description || '';
+        if (description.length > 30) {
+          description = description.substring(0, 27) + '...';
+        }
+
+        let property = txn.property || '';
+        if (property.length > 18) {
+          property = property.substring(0, 15) + '...';
+        }
+
+        let category = txn.category || '';
+        if (category.length > 18) {
+          category = category.substring(0, 15) + '...';
+        }
+
+        doc.text(txn.transactionDate || '', columns.date.x, yPosition);
+        doc.text(description, columns.description.x, yPosition);
+        doc.text(property, columns.property.x, yPosition);
+        doc.text(category, columns.category.x, yPosition);
+        doc.text(this.formatCurrency(txn.amount), columns.amount.x, yPosition);
+
+        yPosition += 12;
+      });
+
+      // Add spacing between cardholders
+      yPosition += 20;
     });
   },
 
@@ -298,6 +457,72 @@ const ReportGenerator = {
       totals[property] = (totals[property] || 0) + txn.amount;
     });
     return totals;
+  },
+
+  /**
+   * Calculate totals by cardholder
+   * @param {Array} transactions - Array of transaction objects
+   * @returns {Object} Object with cardholder totals
+   */
+  calculateCardholderTotals(transactions) {
+    const totals = {};
+    transactions.forEach(txn => {
+      const cardholder = txn.cardholderName || 'Unknown';
+      totals[cardholder] = (totals[cardholder] || 0) + txn.amount;
+    });
+    return totals;
+  },
+
+  /**
+   * Detect if transaction is a store run (Home Depot or Lowes)
+   * @param {Object} transaction - Transaction object
+   * @returns {Object} { isRun: boolean, store: 'Home Depot'|'Lowes'|null }
+   */
+  detectStoreRun(transaction) {
+    const desc = transaction.description.toUpperCase();
+
+    // Home Depot run detection
+    if (desc.includes('HOME DEPOT') && /#\d{4}/.test(desc)) {
+      return { isRun: true, store: 'Home Depot' };
+    }
+
+    // Lowes run detection
+    if ((desc.includes('LOWE\'S') || desc.includes('LOWES')) && /#\d{4}/.test(desc)) {
+      return { isRun: true, store: 'Lowes' };
+    }
+
+    return { isRun: false, store: null };
+  },
+
+  /**
+   * Calculate store runs by cardholder
+   * @param {Array} transactions - Array of transaction objects
+   * @returns {Object} { homeDepot: {}, lowes: {} }
+   */
+  calculateStoreRuns(transactions) {
+    const validTransactions = transactions.filter(txn => !txn.isDuplicate);
+    const runs = {
+      homeDepot: {},
+      lowes: {}
+    };
+
+    validTransactions.forEach(txn => {
+      const { isRun, store } = this.detectStoreRun(txn);
+
+      if (isRun && txn.cardholderName) {
+        const cardholder = txn.cardholderName;
+        const storeKey = store === 'Home Depot' ? 'homeDepot' : 'lowes';
+
+        if (!runs[storeKey][cardholder]) {
+          runs[storeKey][cardholder] = { count: 0, total: 0 };
+        }
+
+        runs[storeKey][cardholder].count++;
+        runs[storeKey][cardholder].total += txn.amount;
+      }
+    });
+
+    return runs;
   },
 
   /**

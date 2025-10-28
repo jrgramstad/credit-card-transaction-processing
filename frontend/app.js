@@ -615,6 +615,168 @@ const App = {
     setTimeout(() => {
       toast.className = 'toast';
     }, CONFIG.UI.TOAST_DURATION);
+  },
+
+  /**
+   * Open modal
+   */
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.add('show');
+
+    // Focus the input field
+    setTimeout(() => {
+      const input = modal.querySelector('.modal-input');
+      if (input) input.focus();
+    }, 100);
+
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.closeModal(modalId);
+      }
+    });
+
+    // Close on ESC key
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        this.closeModal(modalId);
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  /**
+   * Close modal
+   */
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('show');
+
+    // Clear input
+    const input = modal.querySelector('.modal-input');
+    if (input) input.value = '';
+  },
+
+  /**
+   * Save new property to Supabase
+   */
+  async saveNewProperty() {
+    const input = document.getElementById('propertyNameInput');
+    const propertyName = input.value.trim();
+
+    // Validation
+    if (!propertyName) {
+      this.showError('Property name cannot be empty');
+      return;
+    }
+
+    // Check for duplicates
+    if (this.state.properties.includes(propertyName)) {
+      this.showError('Error: Property already exists');
+      return;
+    }
+
+    try {
+      this.showLoading('Adding property...');
+
+      // Get max sort_order
+      const { data: maxData, error: maxError } = await supabaseClient
+        .from('properties')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      if (maxError) throw maxError;
+
+      const maxSortOrder = maxData.length > 0 ? maxData[0].sort_order : 0;
+
+      // Insert new property
+      const { data, error } = await supabaseClient
+        .from('properties')
+        .insert({
+          name: propertyName,
+          active: true,
+          sort_order: maxSortOrder + 1
+        });
+
+      if (error) throw error;
+
+      // Add to local state
+      this.state.properties.push(propertyName);
+
+      // Refresh transaction table to include new property in dropdowns
+      this.renderTransactionTable();
+
+      this.hideLoading();
+      this.closeModal('addPropertyModal');
+      this.showSuccess('Property added successfully!');
+    } catch (error) {
+      console.error('Error adding property:', error);
+      this.hideLoading();
+      this.showError(`Failed to add property: ${error.message}`);
+    }
+  },
+
+  /**
+   * Save new category to Supabase
+   */
+  async saveNewCategory() {
+    const input = document.getElementById('categoryNameInput');
+    const categoryName = input.value.trim();
+
+    // Validation
+    if (!categoryName) {
+      this.showError('Category name cannot be empty');
+      return;
+    }
+
+    // Check for duplicates
+    if (this.state.categories.includes(categoryName)) {
+      this.showError('Error: Category already exists');
+      return;
+    }
+
+    try {
+      this.showLoading('Adding category...');
+
+      // Get max sort_order
+      const { data: maxData, error: maxError } = await supabaseClient
+        .from('categories')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      if (maxError) throw maxError;
+
+      const maxSortOrder = maxData.length > 0 ? maxData[0].sort_order : 0;
+
+      // Insert new category
+      const { data, error } = await supabaseClient
+        .from('categories')
+        .insert({
+          name: categoryName,
+          active: true,
+          sort_order: maxSortOrder + 1
+        });
+
+      if (error) throw error;
+
+      // Add to local state
+      this.state.categories.push(categoryName);
+
+      // Refresh transaction table to include new category in dropdowns
+      this.renderTransactionTable();
+
+      this.hideLoading();
+      this.closeModal('addCategoryModal');
+      this.showSuccess('Category added successfully!');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      this.hideLoading();
+      this.showError(`Failed to add category: ${error.message}`);
+    }
   }
 };
 
