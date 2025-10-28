@@ -61,7 +61,7 @@
         <span class="transaction-count" id="transactionCount">0</span>
       </h2>
 
-      <!-- Legend -->
+      <!-- Legend and Quick Add Buttons -->
       <div class="legend">
         <div class="legend-item">
           <div class="legend-color" style="background-color: #d4edda;"></div>
@@ -71,6 +71,16 @@
           <div class="legend-color" style="background-color: #fff3cd;"></div>
           <span>Needs Assignment (Capital One)</span>
         </div>
+      </div>
+
+      <!-- Quick Add Buttons -->
+      <div class="quick-add-buttons">
+        <button id="addPropertyBtn" class="btn btn-info btn-sm" onclick="App.openModal('addPropertyModal')">
+          + Add Property
+        </button>
+        <button id="addCategoryBtn" class="btn btn-info btn-sm" onclick="App.openModal('addCategoryModal')">
+          + Add Category
+        </button>
       </div>
 
       <!-- Transaction Table -->
@@ -140,6 +150,42 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="toast"></div>
+
+  <!-- Add Property Modal -->
+  <div id="addPropertyModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add New Property</h3>
+        <span class="modal-close" onclick="App.closeModal('addPropertyModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <label for="propertyNameInput">Property Name:</label>
+        <input type="text" id="propertyNameInput" class="modal-input" placeholder="Enter property name">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal('addPropertyModal')">Cancel</button>
+        <button class="btn btn-success" onclick="App.saveNewProperty()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="addCategoryModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add New Category</h3>
+        <span class="modal-close" onclick="App.closeModal('addCategoryModal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <label for="categoryNameInput">Category Name:</label>
+        <input type="text" id="categoryNameInput" class="modal-input" placeholder="Enter category name">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal('addCategoryModal')">Cancel</button>
+        <button class="btn btn-success" onclick="App.saveNewCategory()">Save</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Scripts -->
   <script src="config.js"></script>
